@@ -25,6 +25,10 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.extraEnvs }}
           env:
+            {{- if .Values.bigTable.enabled }}
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/gcp.json
+            {{- end }}
               {{- with .Values.extraEnvs }}
                 {{- toYaml . | trim | nindent 12 -}}
               {{- end }}
@@ -33,6 +37,10 @@ spec:
             - containerPort: 8182
               protocol: TCP
           volumeMounts:
+            {{- if .Values.BigTable.enabled }}
+            - name: google-creds
+              mountPath: /var/secrets/gcp.json
+            {{- end }}
             - name: janusgraph-config
               mountPath: /janusgraph-config
             - name: local-db
@@ -44,6 +52,11 @@ spec:
           resources:
 {{ toYaml .Values.resources | indent 12 }}
       volumes:
+        {{- if .Values.bigTable.enabled }}
+        - name: google-creds
+          secret:
+            name: {{ .Values.bigTable.serviceAccountSecret }}
+        {{- end }}
         - name: janusgraph-config
           configMap:
             name: {{ .Values.configMapOverrideName | default ( printf "%s-config" .Release.Name ) }}
